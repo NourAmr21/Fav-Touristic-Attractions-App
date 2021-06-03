@@ -3,6 +3,7 @@ import 'package:flutter_app/data/locations.dart';
 import 'package:flutter_app/models/Location.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
+import 'MyCustomForm.dart';
 
 void main() {
   runApp(MyApp());
@@ -78,10 +79,15 @@ class MyList extends StatelessWidget {
         floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blue,
           child: Icon(Icons.add),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => MyCustomForm())
+            );
+          },
         ),
         body:// Expanded(
-      /* child:*/ ListView.builder(itemCount: 5, itemBuilder: (context, index) {
+      /* child:*/ ListView.builder(itemCount: locationsAll.listobj.length, itemBuilder: (context, index) {
     //SingleChildScrollView(child: YourBody()),
 
           return Card(
