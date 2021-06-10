@@ -4,8 +4,12 @@ import 'package:flutter_app/models/Location.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 import 'MyCustomForm.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(MyApp());
 }
 
@@ -15,131 +19,138 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'My App',
       theme: ThemeData(
-
         primarySwatch: Colors.blue,
       ),
-      home:MyForm(),
+      home: MyForm(),
     );
   }
 }
-class MyForm extends StatefulWidget{
+
+class MyForm extends StatefulWidget {
   @override
-  MyFormState createState() =>MyFormState();
+  MyFormState createState() => MyFormState();
 }
-class MyFormState extends State{
+
+class MyFormState extends State {
   @override
-  Widget build(BuildContext Context){
+  Widget build(BuildContext Context) {
     return Scaffold(
         appBar: AppBar(
           title: Text('MyApp'),
         ),
-        body:Column(
+        body: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-
             TextField(
-              decoration:InputDecoration(hintText:'name'),
+              decoration: InputDecoration(hintText: 'name'),
             ),
             TextField(
-              decoration:InputDecoration(hintText:'password'),
+              decoration: InputDecoration(hintText: 'password'),
             ),
-            ElevatedButton (
-              //color:Theme.of(context).primaryColor,
-                onPressed: (){
+            ElevatedButton(
+                //color:Theme.of(context).primaryColor,
+                onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => MyList()),
                   );
                 },
-                child:Center(child: Text('press me'))
-            )
+                child: Center(child: Text('press me')))
           ],
-        )
-
-    );
+        ));
   }
 }
 
 //class MyList extends StatelessWidget{
- // @override
- // Widget build(BuildContext context) {
-  //  MyListState createState() =>MyListState();
- // }
+// @override
+// Widget build(BuildContext context) {
+//  MyListState createState() =>MyListState();
+// }
 //}
-class MyList extends StatelessWidget {
+Widget NewList(BuildContext context, DocumentSnapshot snapshot) {
+  Location location = new Location(
+      name: snapshot['name'],
+      theme: snapshot['theme'],
+      description: snapshot['description'],
+      imageUrl: snapshot['imageUrl'],
+      locationUrl: snapshot['locationUrl']);
 
+  return Card(
+
+      // Flexible(
+      child: InkWell(
+    onTap: () {
+      //onPressed: () {
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => Details(location)));
+    },
+    //child: SingleChildScrollView(
+    // Expanded(
+    child: Column(
+        //mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+
+        //title: new Center(
+        children: [
+          new Image.network(location.imageUrl),
+          Text(location.name),
+          Text(location.theme),
+        ]),
+  ));
+}
+
+class MyList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
 
-       // resizeToAvoidBottomInset: false;
+        // resizeToAvoidBottomInset: false;
         appBar: AppBar(
           title: Text("MyApp"),
         ),
         floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
+          backgroundColor: Colors.blue,
           child: Icon(Icons.add),
           onPressed: () {
-            Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MyCustomForm())
-            );
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => MyCustomForm()));
           },
         ),
-        body:// Expanded(
-      /* child:*/ ListView.builder(itemCount: locationsAll.listobj.length, itemBuilder: (context, index) {
-    //SingleChildScrollView(child: YourBody()),
+        body: // Expanded(
+            /* child:*/
 
-          return Card(
+            StreamBuilder(
+                stream: FirebaseFirestore.instance
+                    .collection('Locations')
+                    .snapshots(),
+                builder: (BuildContext context,
+                    AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (!snapshot.hasData) {
+                    return Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
 
-           // Flexible(
-            child: InkWell(
-              onTap: () {
-                //onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Details(index))
-                );
-              },
-    //child: SingleChildScrollView(
-             // Expanded(
-              child: Column(
-                  //mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-
-                //title: new Center(
-                  children: [
-                    new Image.network(locationsAll.listobj[index].imageUrl),
-                    Text(locationsAll.listobj[index].name),
-                    Text(locationsAll.listobj[index].theme),
-
-
-
-                  ]
-
-              ),
-
-    )
-             // ),
-        // )
-         );
-        }
-        )
-    );
-
-    //);
+                  return ListView.builder(
+                    // ignore: deprecated_member_use
+                    itemCount: snapshot.data.documents.length,
+                    itemBuilder: (BuildContext context, int index) =>
+                        NewList(context, snapshot.data.documents[index]),
+                  );
+                }));
   }
-
-
 }
-class Details extends StatelessWidget{
+
+class Details extends StatelessWidget {
   int id;
+
+  Location location;
   Future<void> _launchInBrowser(String url) async {
     if (await canLaunch(url)) {
       await launch(
         url,
         forceSafariVC: false,
         forceWebView: false,
-       // enableJavaScript: true,
+        // enableJavaScript: true,
         headers: <String, String>{'my_header_key': 'my_header_value'},
       );
     } else {
@@ -147,50 +158,36 @@ class Details extends StatelessWidget{
     }
   }
 
-
   @override
-  Details(int id){
-    this.id=id;
-
+  Details(Location location) {
+    // this.id = id;
+    this.location = location;
   }
   Widget build(BuildContext context) {
     return Scaffold(
       //resizeToAvoidBottomInset: false,
-        appBar: AppBar(
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          title: Text('Details'),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        floatingActionButton: FloatingActionButton(
-            backgroundColor: Colors.blue,
-            child: Icon(Icons.map),
-            onPressed: () {
-              _launchInBrowser(locationsAll.listobj[id].locationUrl);
+        title: Text('Details'),
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.blue,
+        child: Icon(Icons.map),
+        onPressed: () {
+          _launchInBrowser(location.locationUrl);
+        },
+      ),
 
-            },
-        ),
-
-
-        body:SingleChildScrollView(
-
-    child: InkWell(
-    child: Column(
-    children:[
-
-     new Image.network(locationsAll.listobj[id].imageUrl),
-    Text(locationsAll.listobj[id].name),
-    Text(locationsAll.listobj[id].description),
-    ]
-
-    )
-    )
-
-    ),
+      body: SingleChildScrollView(
+          child: InkWell(
+              child: Column(children: [
+        new Image.network(location.imageUrl),
+        Text(location.name),
+        Text(location.description),
+      ]))),
     );
-
-
-
-
-  }}
+  }
+}
